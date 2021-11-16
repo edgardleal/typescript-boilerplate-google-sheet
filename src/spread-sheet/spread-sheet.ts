@@ -6,15 +6,9 @@
  * @author Edgard Leal <edgard.leal@sanar.com>
  * @module spread-sheet.ts
  */
-import debug from 'debug';
-import * as lib from 'sqlite3';
 import { GoogleSpreadsheet, GoogleSpreadsheetWorksheet, GoogleSpreadsheetRow } from 'google-spreadsheet';
-import { totalForLastDay } from './db/index';
-import { splitDate, ISplitedDate } from './date';
 
 const cred = require(process.env.SPREADSHEET_AUTH_FILE!); // eslint-disable-line
-
-const logger = debug('keystats:spreadsheet');
 
 export default class SheetSync {
   private lastDay: number = 0;
@@ -42,13 +36,9 @@ export default class SheetSync {
     if (this.isAuthenticated) {
       return Promise.resolve(this.doc);
     }
-    logger('Authenticating...');
     await this.doc.useServiceAccountAuth(cred);
     await this.doc.loadInfo();
-    logger(`Doc: ${this.doc.title}`);
     this.sheet = this.doc.sheetsByIndex[this.sheetNumber];
-    logger(`Sheet: ${this.sheet.title}`);
-    logger(`Rowns: ${this.sheet.rowCount}`);
     this.isAuthenticated = true;
     return this.doc;
   }
@@ -88,59 +78,5 @@ export default class SheetSync {
       skip += list.length;
     } while (list.length && list[list.length - 1][fieldNameToValidate]);
     return result;
-  }
-
-  /**
-   * Check if the row already exists on sheet.
-   *
-   */
-  async exists({ year, month, day }: ISplitedDate): Promise<boolean> {
-    let offset = 0;
-    let rows = [];
-    const searchFunction = (row: any) => row.Year === `${year}`
-      && row.Month === `${month}` && row.Day === `${day}`;
-
-    do {
-      rows = await this.getRows(offset);
-      const finded = rows.find(searchFunction);
-      if (finded) {
-        return true;
-      }
-      offset += rows.length;
-    } while (rows.length && rows[0].Year);
-    return false;
-  }
-
-  async check(db: lib.Database): Promise<void> {
-    const today = new Date().getDate();
-    if (this.lastDay === today) {
-      return Promise.resolve();
-    }
-    await this.auth();
-
-    const splitedDate = splitDate();
-    if ((await this.exists(splitedDate))) {
-      logger('Last day keys is already on spreadsheet');
-      return Promise.resolve();
-    }
-    const {
-      year,
-      month,
-      day,
-    } = splitedDate;
-    const total = await totalForLastDay(db);
-    logger('Registering %d keys on spreadsheet...', total);
-    const result = await this.sheet.addRows([
-      {
-        Date: new Date().toISOString(),
-        Total: total || 0,
-        Year: year,
-        Month: month,
-        Day: day - 1,
-      } as any,
-    ]);
-    logger('Data sent to spreadseet: %o', result);
-    this.lastDay = today;
-    return Promise.resolve();
   }
 }

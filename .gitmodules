@@ -1,0 +1,3 @@
+[submodule "typescript-boilerplate-date"]
+	path = typescript-boilerplate-date
+	url = git@github.com:edgardleal/typescript-boilerplate-date.git

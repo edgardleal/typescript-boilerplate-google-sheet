@@ -10,8 +10,8 @@ import { GoogleSpreadsheet, GoogleSpreadsheetWorksheet, GoogleSpreadsheetRow } f
 
 const cred = require(process.env.SPREADSHEET_AUTH_FILE!); // eslint-disable-line
 
-export default class SheetSync {
-  private lastDay: number = 0;
+export default class SheetSync<T = any> {
+  private cache: GoogleSpreadsheetRow[] = [];
 
   private id: string;
 
@@ -23,13 +23,25 @@ export default class SheetSync {
 
   private sheet: GoogleSpreadsheetWorksheet;
 
+  private currentKey: string;
+
+  get spreadSheetId(): string {
+    return this.id;
+  }
+
+  get primaryKey(): string {
+    return this.currentKey;
+  }
+
   constructor(
     id: string,
+    primaryKey: string = '',
     sheet: number = 0,
   ) {
+    this.currentKey = primaryKey;
     this.id = id;
     this.sheetNumber = sheet;
-    this.doc = new GoogleSpreadsheet(id);
+    this.doc = new GoogleSpreadsheet(this.id);
   }
 
   async auth(): Promise<any> {
@@ -61,6 +73,10 @@ export default class SheetSync {
    * will not be used.
    */
   async getAllRows(fieldNameToValidate: string): Promise<GoogleSpreadsheetRow[]> {
+    if (this.cache && this.cache.length) {
+      console.log('Returning cached result...', ); // eslint-disable-line
+      return this.cache;
+    }
     const result: any[] = [];
 
     let list: any[] = [];
@@ -76,7 +92,18 @@ export default class SheetSync {
       }
 
       skip += list.length;
+      console.log('Quering next page: %d', skip); // eslint-disable-line
     } while (list.length && list[list.length - 1][fieldNameToValidate]);
+    this.cache = result;
     return result;
+  }
+
+  async getRownByKey(keyValue: string, colunmName: string = ''): Promise<GoogleSpreadsheetRow | null> {
+    return (await this.getAllRows(colunmName))
+      .find((row: GoogleSpreadsheetRow) => row && row[colunmName] === keyValue) || null;
+  }
+
+  async exists(keyValue: string, colunmName: string): Promise<boolean> {
+    return !!(await this.getRownByKey(keyValue, colunmName));
   }
 }

@@ -5,7 +5,7 @@
   "license": "MIT",
   "scripts": {
     "test": "jest",
-    "lint": "eslint ."
+    "lint": "eslint . --cache=true"
   },
   "devDependencies": {
     "@types/google-spreadsheet": "^3.1.5",

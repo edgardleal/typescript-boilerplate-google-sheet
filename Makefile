@@ -9,7 +9,7 @@ APP_NAME = $(shell cat package.json 2>/dev/null | $(call JSON_GET_VALUE,name))
 modules = $(wildcard node_modules/*/*.js)
 .PHONY: clean help run build install lint
 
-compile: dist/src/http/index.js
+compile: dist/spread-sheet/spread-sheet.js
 
 node_modules/.last_lint: $(SOURCES)
 	yarn lint
@@ -21,10 +21,10 @@ node_modules/.bin/tsc: package.json
 	yarn || npm i
 	@touch $@
 
-dist/src/http/index.js: $(SOURCES) node_modules/.last_lint node_modules/.bin/tsc coverage/index.html
+dist/spread-sheet/spread-sheet.js: $(SOURCES) node_modules/.last_lint node_modules/.bin/tsc coverage/index.html
 	./node_modules/.bin/tsc -p tsconfig.json
 
-build: dist/src/http/index.js
+build: dist/spread-sheet/spread-sheet.js
 
 node_modules/.bin/jest: package.json
 	yarn || npm i
